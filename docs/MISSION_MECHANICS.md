@@ -21,7 +21,7 @@ adecuación curricular ni dificultad pedagógica medida.
 | --- | --- |
 | ENERGY_OPTIMIZATION | Solver encuentra solución dentro del presupuesto; existe otra ruta simple que lo excede. |
 | CHECKPOINT_DELIVERY | Lo anterior; al omitir todas las estaciones el solver encuentra una ruta más barata cuyo replay original termina MISSING_CHECKPOINTS. |
-| ROUTE_COMPARISON | Dos rutas simples de costo distinto. La cara tiene igual o menos movimientos que la barata, pero supera el presupuesto. Al uniformar costos la preferencia se elimina o invierte. |
+| ROUTE_COMPARISON | La referencia es la solución óptima elegida por el solver, que debe ser simple. La alternativa cara tiene igual o menos movimientos, pero supera el presupuesto. Al uniformar costos la preferencia se elimina o invierte. No basta un par de rutas dominadas por otra óptima barata y corta. |
 
 Todas las estaciones de Mission v1 son obligatorias. La comprobación de entregas
 prueba relevancia colectiva de las estaciones; no prueba un desvío marginal
@@ -65,18 +65,34 @@ de restricciones y `validateMechanic`. Los errores específicos vuelven al LLM e
 el mismo ciclo: una propuesta y máximo dos reparaciones por grado, 90 segundos
 para la actividad y sin reintentos HTTP ocultos.
 
-Para encontrar alternativas se bloquea, una por una, cada celda interior no
-obligatoria del camino certificado y se invoca el solver con energía relajada.
-Cada testigo se reproduce sobre el mapa ORIGINAL. Se excluyen vueltas mediante
-la comprobación de posiciones no repetidas (los giros no agregan posiciones).
-La ruta alternativa debe terminar SUCCESS al relajar solo energía y fallar por
-ENERGY_EXCEEDED con el presupuesto original.
+La búsqueda de alternativas usa `domain/mission/alternative.ts`, un DFS acotado
+sobre posición, orientación, conjunto de celdas visitadas y comandos consumidos.
+No bloquea celdas ni se detiene con la primera solución de energía mínima:
+busca un testigo simple de costo superior al presupuesto y con todos los checkpoints.
+Conserva costos y obstáculos originales; los giros se comprimen a caminos mínimos
+entre las cuatro orientaciones para cada llegada posible mediante avanzar/retroceder.
+Solo utiliza comandos permitidos y respeta el máximo de 128.
 
-Cada búsqueda conserva el límite de 20 000 estados. A lo sumo se prueban 23
-celdas candidatas en un tablero de 25 celdas. SEARCH_LIMIT no prueba imposibilidad.
-El método es conservador: no enumera todos los caminos y puede rechazar mapas
-con una mecánica válida cuyo testigo no encuentre. No mide aprendizaje, intuición,
-interés, dificultad real ni todas las posibles decisiones del alumno.
+Se limita a 20 000 estados globales para toda la búsqueda alternativa, con profundidad
+máxima de 24 movimientos (5×5). Memoria acotada al mapa de etiquetas y un único
+programa en construcción. Una llegada con más comandos solo se descarta si coinciden
+posición, orientación y conjunto visitado: la energía, estaciones y movimientos
+ya son iguales. Nunca se elimina una ruta por ser más cara que otra distinta.
+Las podas de distancia, checkpoints restantes y costo máximo restante son admisibles.
+
+Cada testigo se reproduce en el simulador sobre el tablero original: SUCCESS
+al relajar únicamente energía y ENERGY_EXCEEDED con el presupuesto original.
+ROUTE_COMPARISON acota movimientos por la solución óptima; al uniformar costos a 1
+la energía coincide con movimientos porque los giros son gratis. Se conserva así
+la semántica previa sin relajar la comparación para aceptar pares dominados.
+
+FOUND aporta evidencia reproducida. ABSENT significa búsqueda completa sin testigo
+dentro de paleta, límite de comandos y política de la familia. Si se consume la
+cota antes de completar, se propaga SEARCH_LIMIT, sin afirmar ausencia. Por tanto
+persisten límites de recursos explícitos, pero se elimina el falso negativo de A1.
+El solver de energía mínima sigue siendo Dijkstra con etiquetas de energía/comandos;
+no se reemplaza. Ver [MISSION_CERTIFIER_FIX.md](MISSION_CERTIFIER_FIX.md).
+La certificación no mide aprendizaje, intuición ni dificultad pedagógica real.
 
 Si fracasa la generación, se conserva el respaldo `template_fallback`, su objetivo
 real y la advertencia existente; `fallbackSatisfiesConstraints` incluye ahora la
