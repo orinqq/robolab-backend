@@ -6,7 +6,7 @@ export default defineConfig({
       {
         test: {
           name: "dominio",
-          include: ["domain/**/*.test.ts"],
+          include: ["domain/**/*.test.ts", "generation/**/*.test.ts"],
           environment: "node",
         },
       },

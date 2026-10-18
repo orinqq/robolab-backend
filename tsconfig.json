@@ -1,10 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
@@ -15,6 +19,14 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["domain", "convex", "scripts"],
-  "exclude": ["convex/_generated/ai", "node_modules"]
+  "include": [
+    "domain",
+    "convex",
+    "scripts",
+    "generation"
+  ],
+  "exclude": [
+    "convex/_generated/ai",
+    "node_modules"
+  ]
 }

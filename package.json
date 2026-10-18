@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "private": false,
   "type": "module",
-  "description": "RoboLab: backend en Convex, dominio compartido (reglas del juego y de la evaluación) y robot por wifi.",
+  "description": "RoboLab: backend en Convex, dominio compartido (reglas del juego y de la evaluaci\u00f3n) y robot por wifi.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/orinqq/robolab-backend.git"
@@ -13,7 +13,8 @@
   },
   "files": [
     "convex",
-    "domain"
+    "domain",
+    "generation"
   ],
   "exports": {
     "./convex/_generated/api": {
