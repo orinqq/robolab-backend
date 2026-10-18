@@ -2,6 +2,8 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+import { missionContent, request as aiRequest, origin as aiOrigin, proposal as aiProposal, pedagogy } from "./lib/aiValidators";
+
 export const educationLevel = v.union(
   v.literal("inicial"),
   v.literal("primaria"),
@@ -9,6 +11,28 @@ export const educationLevel = v.union(
 );
 
 export default defineSchema({
+  // Contenido personalizado independiente: nunca se resuelve mediante domain/lab.
+  aiGenerationRuns: defineTable({
+    teacherId: v.id("users"), request: aiRequest,
+    status: v.union(v.literal("running"), v.literal("completed"), v.literal("failed")),
+    proposals: v.array(aiProposal), createdAt: v.number(), leaseUntil: v.number(),
+    finishedAt: v.optional(v.number()),
+  }).index("by_teacherId_and_status_and_leaseUntil", ["teacherId", "status", "leaseUntil"])
+    .index("by_status_and_leaseUntil", ["status", "leaseUntil"]),
+  aiMissions: defineTable({
+    schemaVersion: v.literal(1), kind: v.literal("ai_custom"), teacherId: v.id("users"),
+    generationRunId: v.id("aiGenerationRuns"), generationGrade: v.number(), origin: aiOrigin,
+    request: aiRequest, latestRevision: v.number(),
+    availability: v.literal("not_available"), createdAt: v.number(), updatedAt: v.number(),
+  }).index("by_teacherId", ["teacherId"])
+    .index("by_teacherId_and_generationRunId_and_generationGrade", ["teacherId", "generationRunId", "generationGrade"]),
+  aiMissionRevisions: defineTable({
+    missionId: v.id("aiMissions"), number: v.number(),
+    status: v.union(v.literal("draft"), v.literal("published")),
+    content: missionContent, pedagogy, editVersion: v.number(),
+    createdAt: v.number(), updatedAt: v.number(), publishedAt: v.optional(v.number()),
+  }).index("by_missionId_and_number", ["missionId", "number"]),
+
   // Tablas de Convex Auth. Los docentes son los usuarios autenticados.
   ...authTables,
 

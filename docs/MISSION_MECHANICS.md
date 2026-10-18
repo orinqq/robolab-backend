@@ -84,6 +84,11 @@ mecánica. No se etiqueta un respaldo incompatible como generación certificada.
 
 ## Metadatos separados y compatibilidad
 
+Actualización IA 5: la persistencia y recertificación del sidecar ya están
+implementadas mediante los endpoints `aiMissions` del backend actualizado. Ver
+[AI_CONVEX_INTEGRATION.md](AI_CONVEX_INTEGRATION.md). Los párrafos siguientes
+describen la etapa de migración previa; no son el estado de la integración IA 5.
+
 `generation/pedagogy.ts` define un sidecar JSON con `schemaVersion: 1`,
 identidad/revisión, familia, objetivo matemático, conceptos, justificación del
 catálogo, restricciones solicitadas, evidencia reproducible y limitaciones.

@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as aiGeneration from "../aiGeneration.js";
+import type * as aiGenerationActions from "../aiGenerationActions.js";
+import type * as aiMissions from "../aiMissions.js";
 import type * as analytics from "../analytics.js";
 import type * as assignments from "../assignments.js";
 import type * as auth from "../auth.js";
@@ -19,6 +22,8 @@ import type * as http from "../http.js";
 import type * as impact from "../impact.js";
 import type * as lab from "../lab.js";
 import type * as lib_access from "../lib/access.js";
+import type * as lib_aiValidation from "../lib/aiValidation.js";
+import type * as lib_aiValidators from "../lib/aiValidators.js";
 import type * as lib_attempts from "../lib/attempts.js";
 import type * as lib_classwork from "../lib/classwork.js";
 import type * as lib_codes from "../lib/codes.js";
@@ -43,6 +48,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiGeneration: typeof aiGeneration;
+  aiGenerationActions: typeof aiGenerationActions;
+  aiMissions: typeof aiMissions;
   analytics: typeof analytics;
   assignments: typeof assignments;
   auth: typeof auth;
@@ -54,6 +62,8 @@ declare const fullApi: ApiFromModules<{
   impact: typeof impact;
   lab: typeof lab;
   "lib/access": typeof lib_access;
+  "lib/aiValidation": typeof lib_aiValidation;
+  "lib/aiValidators": typeof lib_aiValidators;
   "lib/attempts": typeof lib_attempts;
   "lib/classwork": typeof lib_classwork;
   "lib/codes": typeof lib_codes;
