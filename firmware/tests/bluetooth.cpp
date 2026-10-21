@@ -38,6 +38,52 @@ static void testEventPresentation() {
   assert(show.frame(3000) == Frame::None);
 }
 
+static void testPresentationEffects() {
+  robolab::EventPresentation show;
+  assert(show.tone(0) == 0 && show.brightness(0) == 0);
+  show.onReply("", "ROBO/1 ADZ ARC", 0);
+  assert(show.tone(0) > 0 && show.tone(120) == 0); // Nota breve y silencio entre notas.
+  assert(show.brightness(0) > show.brightness(120)); // El LED acompaña las notas.
+  const auto opening = show.tone(0);
+  assert(show.tone(720) == 0 && show.tone(3000) != opening);
+  auto motors = show.motors(1500, true, false);
+  assert(motors.left == 0 && motors.right == 0); // HELLO solo no permite mover ruedas.
+  show.onReply("", "PONG", 1000);
+  motors = show.motors(1499, true, false);
+  assert(motors.left == 0 && motors.right == 0);
+  motors = show.motors(1500, true, false);
+  assert(motors.left > 0 && motors.left <= 75 && motors.right == 0);
+  motors = show.motors(1599, true, false);
+  assert(motors.left > 0 && motors.right == 0);
+  motors = show.motors(1600, true, false);
+  assert(motors.left == 0 && motors.right == 0); // Nunca estirar el pulso.
+  show.onReply("", "PONG", 4000);
+  motors = show.motors(4500, true, false);
+  assert(motors.left == 0 && motors.right > 0 && motors.right <= 75);
+  motors = show.motors(7500, true, false); // Puerto cerrado o cliente sin latidos.
+  assert(motors.left == 0 && motors.right == 0);
+  assert(show.brightness(7500) == 0); // Al perder el latido también terminan los efectos.
+  show.onReply("", "PONG", 7501);
+  assert(show.frame(7501) == robolab::EventPresentation::Frame::None);
+  robolab::EventPresentation lostLink;
+  lostLink.onReply("", "ROBO/1 ADZ ARC", 6000);
+  lostLink.onReply("", "PONG", 7000);
+  motors = lostLink.motors(7500, false, false);
+  assert(motors.left == 0 && motors.right == 0 && lostLink.tone(7500) == 0);
+  show.onReply("", "ROBO/1 ADZ ARC", 10000);
+  show.onReply("", "PONG", 11000);
+  motors = show.motors(11500, true, true); // Una orden real gana incluso antes de su primer paso.
+  assert(motors.left == 0 && motors.right == 0 && show.tone(11500) == 0);
+  show.onReply("", "ROBO/1 ADZ ARC", 20000);
+  motors = show.motors(21500, true, false);
+  assert(motors.left == 0 && motors.right == 0); // La reconexión olvida el PONG anterior.
+  show.onReply("", "PONG", 21000);
+  show.onReply("", "STOPPED", 21500);
+  assert(show.tone(21500) == 0 && show.brightness(21500) == 0);
+  motors = show.motors(21500, true, false);
+  assert(motors.left == 0 && motors.right == 0);
+}
+
 struct Reply { std::string id, value; };
 static void capture(void* context, const char* id, const char* reply) {
   static_cast<std::vector<Reply>*>(context)->push_back({id, reply});
@@ -182,6 +228,7 @@ static void testUsbTransport() {
 
 int main() {
   testEventPresentation();
+  testPresentationEffects();
   testBleTransport();
   testUsbTransport();
   const robolab::Config config = {1000, 1000, 1000, 100, 100000, true};

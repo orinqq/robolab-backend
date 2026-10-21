@@ -162,9 +162,22 @@ void sendReplies(void*) {
 #endif
 
 void applyMotors() {
-  if (!pwmReady) {
+  if (!pwmReady || !ready) {
     digitalWrite(MOTOR_IZQUIERDO, LOW);
     digitalWrite(MOTOR_DERECHO, LOW);
+    return;
+  }
+  bool connected;
+#if ROBOLAB_USAR_BLE
+  const auto radioStatus = radioState();
+  connected = radioStatus.connected && !radioStatus.failed && radioStatus.epoch == loopEpoch;
+#else
+  connected = !writeFailed.load();
+#endif
+  const auto greeting = vida.motoresPresentacion(connected, session.motion().active());
+  if (!session.motion().active()) {
+    ledcWrite(MOTOR_IZQUIERDO, greeting.left < velocidadAvance ? greeting.left : velocidadAvance);
+    ledcWrite(MOTOR_DERECHO, greeting.right < velocidadAvance ? greeting.right : velocidadAvance);
     return;
   }
   const robolab::Output output = session.motion().output();
@@ -186,6 +199,7 @@ void animateStep() {
 #if !ROBOLAB_USAR_BLE
 void resetUsbConnection(void*) {
   usbEpoch.fetch_add(1); // No enviar respuestas pendientes de una sesión anterior.
+  vida.cancelarPresentacion();
   applyMotors(); // UsbTransport ya dejó las salidas apagadas antes de HELLO.
   vida.silenciar(); vida.neutral();
 }
@@ -252,9 +266,9 @@ void synchronizeConnection() {
   if (state.epoch == loopEpoch) return;
   session.tick(millis(), false); // Aborta incluso si desconectó y reconectó entre dos ticks.
   session.reset(); // También limpia parciales e ids de la conexión anterior.
+  vida.cancelarPresentacion();
   applyMotors();
   loopEpoch = state.epoch;
-  vida.cancelarPresentacion();
   vida.silenciar(); vida.neutral();
 }
 
@@ -293,6 +307,7 @@ void loop() {
   for (int i = 0; i < 32 && Serial.available(); ++i) {
     const char c = static_cast<char>(Serial.read());
     if (c == 'P' || c == 'p') {
+      vida.cancelarPresentacion();
       session.stop(); applyMotors();
       disconnectRobot(); // P tiene prioridad sobre cualquier RUN que siga en la cola.
       return;

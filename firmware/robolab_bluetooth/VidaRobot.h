@@ -154,17 +154,33 @@ class VidaRobot {
     escribirBuzzer(0);
   }
   void observarRespuesta(const char* id, const char* value) {
-    if (lista_) presentacion_.onReply(id, value, millis());
+    if (!lista_) return;
+    const uint32_t ahora = millis();
+    if (presentacion_.onReply(id, value, ahora)) {
+      silenciar(); // No reanudar una melodía de emoción anterior al terminar los logos.
+      efectosPresentacion_ = true;
+    } else if (presentacion_.frame(ahora) == robolab::EventPresentation::Frame::None) {
+      finalizarEfectosPresentacion();
+    }
   }
-  void cancelarPresentacion() { presentacion_.cancel(); }
+  void cancelarPresentacion() {
+    presentacion_.cancel();
+    finalizarEfectosPresentacion();
+  }
+  robolab::EventPresentation::MotorOutput motoresPresentacion(bool connected, bool commandActive) {
+    const uint32_t ahora = millis();
+    const auto output = presentacion_.motors(ahora, connected, commandActive);
+    if (presentacion_.frame(ahora) == robolab::EventPresentation::Frame::None) finalizarEfectosPresentacion();
+    return output;
+  }
   void actualizar(bool dibujarOjos = true) {
     if (!lista_) return;
     const uint32_t ahora = millis();
-    actualizarSonido(ahora);
-    actualizarLed(ahora);
     if (!dibujarOjos) cancelarPresentacion();
     const auto frame = presentacion_.frame(ahora);
     if (frame != robolab::EventPresentation::Frame::None) {
+      escribirBuzzer(presentacion_.tone(ahora));
+      ledcWrite(PIN_LED, presentacion_.brightness(ahora));
       const uint8_t columnas = presentacion_.columns(ahora);
       if (frame != ultimoFrame_ || (columnas != ultimasColumnas_ && ahora - ultimoDibujo_ >= 33)) {
         static const uint8_t* const logos[] = {
@@ -178,6 +194,9 @@ class VidaRobot {
         ultimoFrame_ = frame; ultimasColumnas_ = columnas; ultimoDibujo_ = ahora;
       }
     } else {
+      finalizarEfectosPresentacion();
+      actualizarSonido(ahora);
+      actualizarLed(ahora);
       ultimoFrame_ = robolab::EventPresentation::Frame::None;
       if (dibujarOjos) ojos_.update();
     }
@@ -196,9 +215,19 @@ class VidaRobot {
   robolab::EventPresentation::Frame ultimoFrame_ = robolab::EventPresentation::Frame::None;
   uint8_t ultimasColumnas_ = 0;
   uint32_t ultimoDibujo_ = 0;
+  bool efectosPresentacion_ = false;
+  uint16_t frecuenciaBuzzer_ = UINT16_MAX;
+
+  void finalizarEfectosPresentacion() {
+    if (!efectosPresentacion_) return;
+    efectosPresentacion_ = false;
+    escribirBuzzer(0); // No toca la secuencia de sonidos de una orden posterior.
+  }
 
   void escribirBuzzer(uint16_t hz) {
     if (!buzzerConfigurado_) return;
+    if (frecuenciaBuzzer_ == hz) return;
+    frecuenciaBuzzer_ = hz;
     if (BUZZER_PASIVO) ledcWriteTone(PIN_BUZZER, hz);
     else {
       const bool nivel = hz ? BUZZER_ACTIVO_EN_ALTO : !BUZZER_ACTIVO_EN_ALTO;
@@ -208,6 +237,7 @@ class VidaRobot {
   template <size_t CANTIDAD>
   void reproducir(const Nota (&secuencia)[CANTIDAD]) {
     if (!lista_) return;
+    cancelarPresentacion(); // Un sonido solicitado por una orden tiene prioridad.
     silenciar(); notas_ = secuencia; cantidad_ = CANTIDAD;
     desdeNota_ = millis(); escribirBuzzer(notas_[0].hz);
   }

@@ -22,3 +22,15 @@ tres segundos con una entrada progresiva y termina después de doce segundos.
 `PING` no la reinicia. Las órdenes de movimiento, paradas, errores y cambios de emoción la cancelan;
 los motores, paradas, sonidos, LED y animaciones de ojos conservan su prioridad.
 Una nueva conexión vuelve a mostrarla. No se necesita cambiar la web.
+
+Cada logo incluye una melodía de cuatro notas, destellos del LED sincronizados
+y un pulso de rueda de 100 ms (izquierda y derecha alternadas). El pulso ocurre
+1,5 segundos después de cada cambio de logo, a PWM 60/255 como máximo y sin
+superar la velocidad de avance configurada. El robot puede desplazarse: grabar
+en un suelo despejado o con las ruedas levantadas.
+
+Los motores del saludo necesitan al menos una respuesta `PONG` en esa conexión
+y latidos de menos de 1,5 segundos de antigüedad. Abrir el puerto o enviar solo
+`HELLO` muestra los logos y reproduce el sonido, pero no mueve ruedas. Cualquier
+orden activa del reto, parada o pérdida de conexión cancela el saludo y sus
+efectos; los sonidos y luces normales vuelven al terminar.
