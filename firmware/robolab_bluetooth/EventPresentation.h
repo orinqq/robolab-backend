@@ -6,7 +6,7 @@ namespace robolab {
 // Calcula efectos sin esperar ni tocar hardware; tolera el rollover de millis().
 class EventPresentation {
  public:
-  enum class Frame : uint8_t { HackTheAndes, PeruTechWeek, Chofex, CrafterStation, None };
+  enum class Frame : uint8_t { HackTheAndes, PeruTechWeek, Chofex, CrafterStation, MealReminder, None };
   static constexpr uint32_t SLIDE_MS = 3000;
   static constexpr uint32_t REVEAL_MS = 400;
   struct MotorOutput { uint8_t left, right; };
@@ -29,7 +29,7 @@ class EventPresentation {
   void cancel() { playing_ = false; }
   Frame frame(uint32_t now) {
     const uint32_t elapsed = now - started_;
-    if (elapsed >= 4 * SLIDE_MS) playing_ = false;
+    if (elapsed >= static_cast<uint8_t>(Frame::None) * SLIDE_MS) playing_ = false;
     return playing_ ? static_cast<Frame>(elapsed / SLIDE_MS) : Frame::None;
   }
   uint8_t columns(uint32_t now) {
@@ -42,9 +42,9 @@ class EventPresentation {
     if (current == Frame::None) return 0;
     const uint32_t phase = (now - started_) % SLIDE_MS;
     if (phase >= 720 || phase % 180 >= 120) return 0;
-    static const uint16_t melodies[4][4] = {
+    static const uint16_t melodies[5][4] = {
       {523,659,784,1047}, {659,784,988,1319},
-      {784,988,1175,1568}, {1047,784,659,523}
+      {784,988,1175,1568}, {1047,784,659,523}, {1047,1319,1175,1568}
     };
     return melodies[static_cast<uint8_t>(current)][phase / 180];
   }
@@ -59,6 +59,7 @@ class EventPresentation {
     const Frame current = frame(now);
     if (current == Frame::None || !hasPing_) return {0,0};
     if (now - lastPing_ >= 1500) { cancel(); return {0,0}; }
+    if (current == Frame::MealReminder) return {0,0};
     const uint32_t phase = (now - started_) % SLIDE_MS;
     // Un pulso corto por logo, después de la entrada OLED y de recibir latidos.
     if (phase < 1500 || phase >= 1600) return {0,0};

@@ -18,7 +18,9 @@ instalados, ejecutar `python3 scripts/generate-oled-logos.py`, seguido de
 `npm run firmware:bundle`. Los PBM permiten inspeccionar los píxeles reales.
 
 La presentación empieza cuando se confirma `HELLO`, muestra cada logo durante
-tres segundos con una entrada progresiva y termina después de doce segundos.
+tres segundos con una entrada progresiva. Después aparece «Antochela, come tu
+comida» en tres líneas durante tres segundos con su propia melodía de buzzer;
+esta pantalla no agrega pulsos de ruedas. La presentación completa dura quince segundos.
 `PING` no la reinicia. Las órdenes de movimiento, paradas, errores y cambios de emoción la cancelan;
 los motores, paradas, sonidos, LED y animaciones de ojos conservan su prioridad.
 Una nueva conexión vuelve a mostrarla. No se necesita cambiar la web.
