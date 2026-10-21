@@ -12,6 +12,8 @@ using ControladorOLED = Adafruit_SH1106G;
 using ControladorOLED = Adafruit_SSD1306;
 #endif
 #include <FluxGarage_RoboEyes.h>
+#include "EventPresentation.h"
+#include "EventLogos.h"
 
 class VidaRobot {
  public:
@@ -82,6 +84,7 @@ class VidaRobot {
   void dormido() { cambiarEmocion(Emocion::Dormido); }
 
   void cambiarEmocion(Emocion nueva, bool conSonido = true) {
+    cancelarPresentacion();
     if (!lista_ || static_cast<uint8_t>(nueva) > 5) return;
     if (hayEmocion_ && nueva == emocion_) return;
     hayEmocion_ = true;
@@ -150,12 +153,34 @@ class VidaRobot {
     notas_ = nullptr; cantidad_ = 0; indice_ = 0;
     escribirBuzzer(0);
   }
+  void observarRespuesta(const char* id, const char* value) {
+    if (lista_) presentacion_.onReply(id, value, millis());
+  }
+  void cancelarPresentacion() { presentacion_.cancel(); }
   void actualizar(bool dibujarOjos = true) {
     if (!lista_) return;
     const uint32_t ahora = millis();
     actualizarSonido(ahora);
     actualizarLed(ahora);
-    if (dibujarOjos) ojos_.update();
+    if (!dibujarOjos) cancelarPresentacion();
+    const auto frame = presentacion_.frame(ahora);
+    if (frame != robolab::EventPresentation::Frame::None) {
+      const uint8_t columnas = presentacion_.columns(ahora);
+      if (frame != ultimoFrame_ || (columnas != ultimasColumnas_ && ahora - ultimoDibujo_ >= 33)) {
+        static const uint8_t* const logos[] = {
+          robolab::event_logos::HackTheAndes, robolab::event_logos::PeruTechWeek,
+          robolab::event_logos::Chofex, robolab::event_logos::CrafterStation
+        };
+        pantalla_.clearDisplay();
+        pantalla_.drawBitmap(0, 0, logos[static_cast<uint8_t>(frame)], 128, 64, 1);
+        if (columnas < 128) pantalla_.fillRect(columnas, 0, 128 - columnas, 64, 0);
+        pantalla_.display();
+        ultimoFrame_ = frame; ultimasColumnas_ = columnas; ultimoDibujo_ = ahora;
+      }
+    } else {
+      ultimoFrame_ = robolab::EventPresentation::Frame::None;
+      if (dibujarOjos) ojos_.update();
+    }
   }
 
  private:
@@ -167,6 +192,10 @@ class VidaRobot {
   uint32_t desdeEmocion_ = 0, desdeNota_ = 0;
   const Nota* notas_ = nullptr;
   size_t cantidad_ = 0, indice_ = 0;
+  robolab::EventPresentation presentacion_;
+  robolab::EventPresentation::Frame ultimoFrame_ = robolab::EventPresentation::Frame::None;
+  uint8_t ultimasColumnas_ = 0;
+  uint32_t ultimoDibujo_ = 0;
 
   void escribirBuzzer(uint16_t hz) {
     if (!buzzerConfigurado_) return;
@@ -214,4 +243,3 @@ class VidaRobot {
     ledcWrite(PIN_LED,brillo);
   }
 };
-

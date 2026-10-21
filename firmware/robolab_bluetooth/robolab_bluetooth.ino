@@ -72,7 +72,11 @@ void enqueueReply(void*, const char* id, const char* value) {
   packet.epoch = replyEpoch();
   if (*id) snprintf(packet.text, sizeof(packet.text), "STATUS %s %s\n", id, value);
   else snprintf(packet.text, sizeof(packet.text), "%s\n", value);
-  if (!outgoing || xQueueSend(outgoing, &packet, 0) != pdTRUE) failConnection(packet.epoch);
+  if (!outgoing || xQueueSend(outgoing, &packet, 0) != pdTRUE) {
+    vida.cancelarPresentacion();
+    failConnection(packet.epoch);
+  }
+  else vida.observarRespuesta(id, value); // Solo HELLO confirmado inicia los logos; PING no los reinicia.
 }
 
 const robolab::Config movementConfig = {
@@ -250,6 +254,7 @@ void synchronizeConnection() {
   session.reset(); // También limpia parciales e ids de la conexión anterior.
   applyMotors();
   loopEpoch = state.epoch;
+  vida.cancelarPresentacion();
   vida.silenciar(); vida.neutral();
 }
 
@@ -279,6 +284,7 @@ void loop() {
   session.tick(millis(), connected);
   applyMotors();
   if (state.failed && state.connected) {
+    vida.cancelarPresentacion();
     session.stop("ERR:NETWORK");
     applyMotors();
     disconnectRobot(); // Los motores ya están apagados.
@@ -319,6 +325,7 @@ void loop() {
   session.tick(millis(), ready);
   applyMotors();
   if (writeFailed.exchange(false)) {
+    vida.cancelarPresentacion();
     session.stop("ERR:NETWORK");
     applyMotors();
     session.reset(); usb.clear();

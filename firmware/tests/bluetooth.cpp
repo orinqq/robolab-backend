@@ -4,6 +4,39 @@
 #include "../robolab_bluetooth/Protocol.h"
 #include "../robolab_bluetooth/BleTransport.h"
 #include "../robolab_bluetooth/UsbTransport.h"
+#include "../robolab_bluetooth/EventPresentation.h"
+
+static void testEventPresentation() {
+  using Frame = robolab::EventPresentation::Frame;
+  robolab::EventPresentation show;
+  assert(show.frame(0) == Frame::None); // No aparece solo por alimentar el robot.
+  show.onReply("", "PONG", 50);
+  assert(show.frame(50) == Frame::None);
+  show.onReply("", "ROBO/1 ADZ ARC", 100);
+  assert(show.frame(100) == Frame::HackTheAndes);
+  assert(show.columns(100) == 0 && show.columns(500) == 128);
+  show.onReply("", "PONG", 2000); // El latido no reinicia el primer logo.
+  assert(show.frame(3099) == Frame::HackTheAndes);
+  assert(show.frame(3100) == Frame::PeruTechWeek);
+  assert(show.frame(6100) == Frame::Chofex);
+  assert(show.frame(9100) == Frame::CrafterStation);
+  assert(show.frame(12100) == Frame::None); // Después vuelven los ojos.
+  assert(show.columns(12100) == 0);
+  assert(show.frame(100) == Frame::None); // No revive al completar una vuelta de millis().
+  show.onReply("", "ROBO/1 ADZ ARC", 13000); // Otra conexión repite la secuencia.
+  show.onReply("run-1", "RUN", 13001);
+  assert(show.frame(13001) == Frame::None); // El movimiento tiene prioridad inmediata.
+  show.onReply("", "ROBO/1 ADZ ARC", 14000);
+  show.onReply("", "STOPPED", 14001);
+  assert(show.frame(14001) == Frame::None);
+  show.onReply("", "ROBO/1 ADZ ARC", 15000);
+  show.onReply("", "ERR:NETWORK", 15001);
+  assert(show.frame(15001) == Frame::None);
+  show.onReply("", "ROBO/1 ADZ ARC", UINT32_MAX - 99);
+  assert(show.frame(2900) == Frame::PeruTechWeek); // millis() puede desbordar.
+  show.cancel();
+  assert(show.frame(3000) == Frame::None);
+}
 
 struct Reply { std::string id, value; };
 static void capture(void* context, const char* id, const char* reply) {
@@ -148,6 +181,7 @@ static void testUsbTransport() {
 }
 
 int main() {
+  testEventPresentation();
   testBleTransport();
   testUsbTransport();
   const robolab::Config config = {1000, 1000, 1000, 100, 100000, true};
