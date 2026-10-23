@@ -188,18 +188,7 @@ class VidaRobot {
           robolab::event_logos::Chofex, robolab::event_logos::CrafterStation
         };
         pantalla_.clearDisplay();
-        if (frame == robolab::EventPresentation::Frame::MealReminder) {
-          pantalla_.setTextColor(1);
-          pantalla_.setTextSize(2);
-          pantalla_.setTextWrap(false);
-          pantalla_.setCursor(10, 8); pantalla_.print("Antochela");
-          pantalla_.setCursor(22, 24); pantalla_.print("come tu");
-          pantalla_.setCursor(28, 40); pantalla_.print("comida");
-          pantalla_.setTextSize(1);
-          pantalla_.setTextWrap(true);
-        } else {
-          pantalla_.drawBitmap(0, 0, logos[static_cast<uint8_t>(frame)], 128, 64, 1);
-        }
+        pantalla_.drawBitmap(0, 0, logos[static_cast<uint8_t>(frame)], 128, 64, 1);
         if (columnas < 128) pantalla_.fillRect(columnas, 0, 128 - columnas, 64, 0);
         pantalla_.display();
         ultimoFrame_ = frame; ultimasColumnas_ = columnas; ultimoDibujo_ = ahora;

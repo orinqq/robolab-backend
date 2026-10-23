@@ -20,11 +20,8 @@ static void testEventPresentation() {
   assert(show.frame(3100) == Frame::PeruTechWeek);
   assert(show.frame(6100) == Frame::Chofex);
   assert(show.frame(9100) == Frame::CrafterStation);
-  assert(show.frame(12100) == Frame::MealReminder); // El mensaje de comida va después de los cuatro logos.
-  assert(show.tone(12100) > 0);
-  assert(show.frame(15099) != Frame::None);
-  assert(show.frame(15100) == Frame::None); // Después vuelven los ojos.
-  assert(show.columns(15100) == 0);
+  assert(show.frame(12100) == Frame::None); // Después vuelven los ojos.
+  assert(show.columns(12100) == 0);
   assert(show.frame(100) == Frame::None); // No revive al completar una vuelta de millis().
   show.onReply("", "ROBO/1 ADZ ARC", 13000); // Otra conexión repite la secuencia.
   show.onReply("run-1", "RUN", 13001);
@@ -39,20 +36,6 @@ static void testEventPresentation() {
   assert(show.frame(2900) == Frame::PeruTechWeek); // millis() puede desbordar.
   show.cancel();
   assert(show.frame(3000) == Frame::None);
-}
-
-static void testMealReminder() {
-  robolab::EventPresentation show;
-  show.onReply("", "ROBO/1 ADZ ARC", 0);
-  assert(show.frame(12000) == robolab::EventPresentation::Frame::MealReminder);
-  assert(show.tone(12000) > 0 && show.tone(12120) == 0);
-  assert(show.columns(12000) == 0 && show.columns(12400) == 128);
-  show.onReply("", "PONG", 13000);
-  const auto motors = show.motors(13500, true, false);
-  assert(motors.left == 0 && motors.right == 0); // El nuevo mensaje no agrega movimientos.
-  show.onReply("", "STOPPED", 13501);
-  assert(show.frame(13501) == robolab::EventPresentation::Frame::None);
-  assert(show.tone(13501) == 0);
 }
 
 static void testPresentationEffects() {
@@ -245,7 +228,6 @@ static void testUsbTransport() {
 
 int main() {
   testEventPresentation();
-  testMealReminder();
   testPresentationEffects();
   testBleTransport();
   testUsbTransport();
